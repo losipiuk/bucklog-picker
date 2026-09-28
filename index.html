@@ -1,0 +1,83 @@
+<!doctype html>
+<!--
+  Google Picker for the Bucklog Android/iOS app.
+
+  Opened by the app in a Chrome Custom Tab (so the user's Google web session is available) as
+    https://losipiuk.github.io/bucklog-picker/#token=…&apiKey=…&appId=…&fileId=…&return=…
+  The fragment never reaches the server. Picking a file grants the app drive.file access to it;
+  the result goes back to the app through the `return` URL (the app's custom scheme).
+-->
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <title>Bucklog: choose sheet</title>
+  <style>
+    html, body { margin: 0; height: 100%; font-family: system-ui, sans-serif; background: #fafafa; color: #1c1b1f; }
+    main { padding: 24px; text-align: center; }
+    a.button { display: inline-block; margin-top: 16px; padding: 14px 28px; border-radius: 24px;
+               background: #6750a4; color: white; text-decoration: none; font-weight: 600; }
+    @media (prefers-color-scheme: dark) { html, body { background: #1c1b1f; color: #e6e1e5; } }
+  </style>
+</head>
+<body>
+<main id="status">Loading Google Picker…</main>
+<script>
+  const params = new URLSearchParams(location.hash.slice(1));
+  // Drop the token from the address bar and history as soon as it's read.
+  history.replaceState(null, '', location.pathname);
+
+  const returnUrl = params.get('return');
+  const status = document.getElementById('status');
+
+  function finish(result) {
+    if (!returnUrl || !/^net\.osipiuk\.bucklog:\/\//.test(returnUrl)) {
+      status.textContent = 'Missing or invalid return address. Open this page from the Bucklog app.';
+      return;
+    }
+    const url = returnUrl + '?' + new URLSearchParams(result).toString();
+    status.innerHTML = '';
+    const link = document.createElement('a');
+    link.className = 'button';
+    link.href = url;
+    link.textContent = 'Back to Bucklog';
+    status.append(result.id ? `Selected “${result.name}”.` : (result.error || 'Cancelled.'), document.createElement('br'), link);
+    location.href = url; // may be blocked without a user gesture; the button covers that case
+  }
+
+  function start() {
+    if (!params.get('token')) return finish({ error: 'No access token. Open this page from the Bucklog app.' });
+    gapi.load('picker', { callback: show, onerror: () => finish({ error: 'Failed to load Google Picker.' }) });
+  }
+
+  function show() {
+    try {
+      const view = new google.picker.DocsView(google.picker.ViewId.SPREADSHEETS)
+        .setMode(google.picker.DocsViewMode.LIST);
+      if (params.get('fileId')) view.setFileIds(params.get('fileId'));
+      new google.picker.PickerBuilder()
+        .addView(view)
+        .setOAuthToken(params.get('token'))
+        .setDeveloperKey(params.get('apiKey'))
+        .setAppId(params.get('appId'))
+        .setTitle('Choose the family Bucklog sheet')
+        .setSize(window.innerWidth, window.innerHeight)
+        .setCallback(data => {
+          if (data.action === google.picker.Action.PICKED) {
+            finish({ id: data.docs[0].id, name: data.docs[0].name });
+          } else if (data.action === google.picker.Action.CANCEL) {
+            finish({ cancelled: '1' });
+          }
+        })
+        .build()
+        .setVisible(true);
+      status.textContent = '';
+    } catch (e) {
+      finish({ error: String(e) });
+    }
+  }
+</script>
+<script src="https://apis.google.com/js/api.js" onload="start()" onerror="finish({ error: 'Failed to load Google APIs.' })"></script>
+</body>
+</html>
