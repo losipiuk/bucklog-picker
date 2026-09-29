@@ -1,0 +1,80 @@
+<!doctype html>
+<!--
+  Invite landing page for Bucklog. Links look like
+    https://losipiuk.github.io/bucklog-picker/join.html#sheet=…&name=…&from=…
+  The fragment never reaches the server. The button hands the details to the app
+  (net.osipiuk.bucklog://join?…), which lets the invitee pick that sheet once.
+-->
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <title>Join Bucklog</title>
+  <style>
+    :root { --ground: #FBF6F1; --ink: #2A1A14; --muted: #6E5A50; --brand: #8C3B2F; --on-brand: #FBEFE2; --card: #FFFFFF; }
+    @media (prefers-color-scheme: dark) { :root { --ground: #1A1411; --ink: #F3E9E2; --muted: #BCA99E; --brand: #E9A08F; --on-brand: #2A1A14; --card: #241C18; } }
+    html, body { margin: 0; background: var(--ground); color: var(--ink); font: 16px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+    main { max-width: 480px; margin: 0 auto; padding: 40px 20px; display: grid; gap: 20px; }
+    h1 { font-size: 26px; line-height: 1.2; margin: 0; }
+    .card { background: var(--card); border-radius: 16px; padding: 20px; display: grid; gap: 12px; }
+    ol { margin: 0; padding-left: 20px; display: grid; gap: 8px; }
+    a.button { display: block; text-align: center; padding: 16px; border-radius: 28px; background: var(--brand); color: var(--on-brand); font-weight: 700; text-decoration: none; font-size: 18px; }
+    .muted { color: var(--muted); font-size: 14px; }
+  </style>
+</head>
+<body>
+<main>
+  <svg width="64" height="64" viewBox="18 18 72 72" aria-hidden="true">
+    <rect x="18" y="18" width="72" height="72" rx="20" fill="#8C3B2F"/>
+    <circle cx="58" cy="38" r="9" fill="#F2B544"/>
+    <rect x="30" y="40" width="48" height="36" rx="7" fill="#FBEFE2"/>
+    <path d="M58 50h20v16H58a8 8 0 0 1 0-16z" fill="#8C3B2F"/>
+    <circle cx="61" cy="58" r="3" fill="#FBEFE2"/>
+  </svg>
+  <h1 id="title"></h1>
+  <div class="card">
+    <ol>
+      <li id="step1"></li>
+      <li id="step2"></li>
+    </ol>
+    <a class="button" id="open" href="#"></a>
+  </div>
+  <p class="muted" id="note"></p>
+</main>
+<script>
+  const params = new URLSearchParams(location.hash.slice(1));
+  const sheet = params.get('sheet') || '';
+  const name = params.get('name') || 'Bucklog';
+  const from = params.get('from') || '';
+  const pl = (navigator.language || '').toLowerCase().startsWith('pl');
+  const t = pl ? {
+    title: from ? `${from} zaprasza Cię do wspólnych wydatków „${name}”` : `Zaproszenie do wspólnych wydatków „${name}”`,
+    step1: from ? `Zainstaluj aplikację Bucklog (poproś ${from} o plik).` : 'Zainstaluj aplikację Bucklog.',
+    step2: 'Kliknij przycisk poniżej, zaloguj się przez Google i potwierdź arkusz.',
+    open: 'Otwórz w Bucklog',
+    note: 'Arkusz musi być Ci udostępniony w Google. Jeśli Google przysłało Ci e-mail o udostępnieniu, wszystko gotowe.',
+    bad: 'Ten link jest niepełny. Poproś o nowe zaproszenie.',
+  } : {
+    title: from ? `${from} invited you to share expenses in “${name}”` : `You're invited to share expenses in “${name}”`,
+    step1: from ? `Install the Bucklog app (ask ${from} for it).` : 'Install the Bucklog app.',
+    step2: 'Tap the button below, sign in with Google and confirm the sheet.',
+    open: 'Open in Bucklog',
+    note: "The sheet must be shared with your Google account. If Google emailed you about it, you're all set.",
+    bad: 'This link is incomplete. Ask for a new invite.',
+  };
+  document.documentElement.lang = pl ? 'pl' : 'en';
+  document.getElementById('title').textContent = sheet ? t.title : t.bad;
+  document.getElementById('step1').textContent = t.step1;
+  document.getElementById('step2').textContent = t.step2;
+  document.getElementById('note').textContent = t.note;
+  const open = document.getElementById('open');
+  open.textContent = t.open;
+  if (sheet) {
+    open.href = 'net.osipiuk.bucklog://join?' + new URLSearchParams({ sheet, name, from }).toString();
+  } else {
+    open.hidden = true;
+  }
+</script>
+</body>
+</html>
